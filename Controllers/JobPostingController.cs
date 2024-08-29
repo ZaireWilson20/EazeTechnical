@@ -14,11 +14,18 @@ public class JobPostingController : Controller
         (JobsDbContext?)HttpContext.RequestServices.GetService(typeof(JobsDbContext));
     private readonly IJobPostingScraper _jobScraper;
     private readonly ILogger<JobPostingController> _logger;
+    public readonly JobRequestDto DefaultParams;
 
     public JobPostingController(IJobPostingScraper jobScraper, ILogger<JobPostingController> logger)
     {
         _jobScraper = jobScraper;
         _logger = logger;
+        DefaultParams = new JobRequestDto
+        {
+            Location = "California",
+            Query = "Cannabis",
+            LastNdays = -1
+        };
     }
     
     [HttpPost]
@@ -35,27 +42,24 @@ public class JobPostingController : Controller
         }
 
         // Set defaults for missing params
-        var queryStr = jobPostParams.Query ?? "Cannabis";
-        var locationStr = jobPostParams.Location ?? "California";
-        var lastNdaysVal = jobPostParams.LastNdays ?? -1;
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var queryStr = jobPostParams.Query ?? DefaultParams.Query;
+        var locationStr = jobPostParams.Location ?? DefaultParams.Location;
+        var lastNdaysVal = jobPostParams.LastNdays ?? DefaultParams.LastNdays;
+        using var cancTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         
         try
         {
-            var scrapedJobs = await _jobScraper.ScrapeJobsAsync(queryStr, locationStr, lastNdaysVal, cts.Token);
-            var jobPostingDtos = scrapedJobs.ToList();
-            foreach (var job in jobPostingDtos) //TODO: Remove
-            {
-                _logger.LogInformation("Job: Title {}", job.Title);
-            }
-            // Create the response
+            var scrapedJobs = await _jobScraper.ScrapeJobsAsync(queryStr, locationStr, lastNdaysVal, cancTokenSource.Token);
+            var jobPostingDtos = scrapedJobs.Item1.ToList();
+
             var response = new QueryResponse
             {
                 Metadata = new Metadata
                 {
                     QueryId = "1"  // TODO: Make sure this unique for each new query made
                 },
-                Results = jobPostingDtos
+                Results = jobPostingDtos,
+                Message = scrapedJobs.Item2 ? "Full page scraped." : "Some job posts may be missing due to an exception hit while scraping."
             };
 
             return Ok(response);

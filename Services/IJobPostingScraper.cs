@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using EazeTechnical.Models;
 using HtmlAgilityPack;
+using Microsoft.AspNetCore.Mvc;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
@@ -10,7 +11,7 @@ namespace EazeTechnical.Services;
 
 public interface IJobPostingScraper
 {
-    Task<IEnumerable<JobPostingDto>> ScrapeJobsAsync(string query, string location, int dateWithin, CancellationToken cancellationToken, int maxPageCount=100);
+    Task<Tuple<IEnumerable<JobPostingDto>, bool>> ScrapeJobsAsync(string query, string location, int? dateWithin, CancellationToken cancellationToken, int maxPageCount=100);
 }
 
 public class JobScraper : IJobPostingScraper
@@ -26,7 +27,7 @@ public class JobScraper : IJobPostingScraper
         //MaxPageCount = maxPageCount;
     }
     
-    public async Task<IEnumerable<JobPostingDto>> ScrapeJobsAsync(string? query, string? location, int dateWithin, CancellationToken cancellationToken, int maxPageCount=100)
+    public async Task<Tuple<IEnumerable<JobPostingDto>, bool>> ScrapeJobsAsync(string? query, string? location, int? dateWithin, CancellationToken cancellationToken, int maxPageCount=100)
     {
         var jobPostings = new List<JobPostingDto>();
         var paramsString = $"?q={query}&l={location}";
@@ -63,100 +64,172 @@ public class JobScraper : IJobPostingScraper
                 }*/
                 
             driver.Navigate().GoToUrl(url);
-        
-            // Wait for the page to load and elements to be present
-            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
             
+            
+            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+            int cardCount = 0;
             try
             {
+                // Wait til card containers are found
                 var allCards = wait.Until(card => card.FindElements(By.XPath("//div[contains(@data-testid, 'slider_container')]")));
+                cardCount = allCards.Count;
+                int currentCard = 1;
+                _logger.LogInformation("Scraping Started, opened web driver. Initial Job Card Count: {} -- Job Cards Scraped {}", cardCount, jobPostings.Count);
 
-                //var jobPosts = allCards.FindElement(By.XPath("//a[contains(@class, 'jcs-JobTitle')]"));
-
-                await Task.Delay(TimeSpan.FromSeconds(7f));
-                
                 foreach (var jobPost in allCards)
                 {
-                
-                    try
+                    bool shouldRetry = true;
+                    int maxRetries = 3;
+                    int currentAttempt = 0;
+                    currentCard++;
+                    while (shouldRetry && currentAttempt < maxRetries)
                     {
-                        var jobLocation = jobPost.FindElement(By.XPath(".//div[contains(@data-testid, 'text-location')]")).Text;
-                        var jobCompany = jobPost.FindElement(By.XPath(".//span[contains(@data-testid, 'company-name')]")).Text;
-                        var jobTitle = jobPost.FindElement(By.XPath(".//a[contains(@class, 'jcs-JobTitle')]")).Text;
-                        
-                        bool withinDateRange = true;
-                        if (dateWithin > 0)
+                        if (currentAttempt > 0)
                         {
-                            var jobDays = jobPost.FindElement(By.XPath(".//span[contains(@data-testid, 'myJobsStateDate')]")).Text;
-                            string days = new String(jobDays.Where(Char.IsDigit).ToArray());
-                            if (days.Length > 0)
+                            _logger.LogWarning("Card {}, attempt {}", currentCard, currentAttempt + 1);
+                        }
+                        shouldRetry = false;
+                        currentAttempt++;
+                        try
+                        {
+                            // Look for job loc
+                            string? jobLocation = null;
+                            try
                             {
-                                int val = int.Parse(days);
-                                withinDateRange = val <= dateWithin;
+                                jobLocation = jobPost
+                                    .FindElement(By.XPath(".//div[contains(@data-testid, 'text-location')]")).Text;
                             }
-                        }
-                        
-                        if(!withinDateRange) continue;
-                        
-                        if (!IsElementStale(jobPost))
-                        {
-                            jobPost.Click();
-                        }
-                        else
-                        {
-                            return jobPostings;
-                        }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning("Finding Job Location -- Exception: {}", ex.Message);
+                            }
+                            
+                            // Look for job company
+                            string? jobCompany = null;
+                            try
+                            {
+                                jobCompany = jobPost.FindElement(By.XPath(".//span[contains(@data-testid, 'company-name')]")).Text;
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning("Finding Job Company -- Exception: {}", ex.Message);
+                            }
 
-                        wait.Until(moreDetails =>
-                            moreDetails.FindElement(By.XPath("//div[contains(@id, 'jobDescriptionText')]")));
-                        
-                        var closeDeets = driver.FindElement(
-                            By.XPath("//button[contains(@class, 'jobsearch-ClosableViewJobPage-button-close')]"));
-                        
-                        var jobDescription = driver.FindElement(By.XPath("//div[contains(@id, 'jobDescriptionText')]")).Text;
-                        var jobSalary = driver.FindElement(By.XPath("//div[contains(@id, 'salaryInfoAndJobType')]")).FindElement(By.XPath(".//span")).Text;
-                        
-                        
-                        jobSalary = jobSalary.IndexOf("$", StringComparison.Ordinal) == 0 ? jobSalary : null;
-                        closeDeets.Click();
-                        wait.Until(closed =>
-                            closed.FindElement(By.XPath(".//span[contains(@data-testid, 'myJobsStateDate')]")));
-                    
-                        jobPostings.Add(new JobPostingDto
+                            // Look for job Title
+                            string? jobTitle = null;
+                            try
+                            {
+                                jobTitle = jobPost.FindElement(By.XPath(".//a[contains(@class, 'jcs-JobTitle')]")).Text;
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning("Finding Job Title -- Exception: {}", ex.Message);
+                            }
+                            
+                            bool withinDateRange = true;
+                            if (dateWithin > 0)
+                            {
+                                try
+                                {
+                                    var jobDays = jobPost.FindElement(By.XPath(".//span[contains(@data-testid, 'myJobsStateDate')]")).Text;
+                                    string days = new String(jobDays.Where(Char.IsDigit).ToArray());
+                                    if (days.Length > 0)
+                                    {
+                                        int val = int.Parse(days);
+                                        withinDateRange = val <= dateWithin;
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogWarning("Looking For Job Day Post/Active -- Exception: {}", ex.Message);
+                                }
+
+                            }
+                            
+                            if(!withinDateRange) continue;
+                            
+
+                            jobPost.Click();
+
+
+                            try
+                            {
+                                // Waiting til full details window is up
+                                wait.Until(moreDetails =>
+                                    moreDetails.FindElement(By.XPath("//div[contains(@class, 'jobsearch-JobComponent')]")));
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning("Waiting for Full Details Element -- Exception: {}", ex.Message);
+                                continue;
+                            }
+         
+                            string? jobDescription = null;
+                            try
+                            {
+                                jobDescription = driver
+                                    .FindElement(By.XPath("//div[contains(@id, 'jobDescriptionText')]")).Text;
+                            }
+                            catch (StaleElementReferenceException)
+                            {
+                                _logger.LogWarning("Finding Job Description -- Stale Reference Exception, Retying Card");
+                                shouldRetry = true;
+                                continue;
+                            }
+                            catch (Exception ex)
+                            {
+                                jobDescription = null;
+                                _logger.LogWarning("Finding Job Description -- Exception: {}", ex.Message);
+                            }
+
+                            string? jobSalary = null;
+                            try
+                            {
+                                jobSalary = driver.FindElement(By.XPath("//div[contains(@id, 'salaryInfoAndJobType')]")).FindElement(By.XPath(".//span")).Text;
+                                jobSalary = jobSalary.IndexOf("$", StringComparison.Ordinal) == 0 ? jobSalary : null;
+                            }
+                            catch (Exception ex)
+                            {
+                                jobSalary = null;
+                                _logger.LogWarning("Finding Job Salary -- Exception: {}", ex.Message);
+                            }
+                            
+                            
+                            AddToJobList(ref jobPostings, jobTitle, jobLocation, jobCompany, jobDescription, jobSalary);
+                        }
+                        // Most likely due to popup that cannot be close -- just return what has been collected so far
+                        catch (ElementClickInterceptedException ex)
                         {
-                            Title = jobTitle,
-                            Location = jobLocation,
-                            Company = jobCompany,
-                            Description = jobDescription,
-                            Salary = jobSalary, 
-                        });
+                            _logger.LogWarning("Element Click Intercepted Exception: " + ex.Message);
+                            _logger.LogInformation("Scraping finished, closing web driver. Initial Job Card Count: {} -- Job Cards Scraped {}", cardCount, jobPostings.Count);
+                            return new Tuple<IEnumerable<JobPostingDto>, bool>(jobPostings, false);
+                        }
+                        catch (StaleElementReferenceException ex)
+                        {
+                            _logger.LogWarning("Stale Element Reference Exception: " + ex.Message);
+                            shouldRetry = true;
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogWarning("Reading Cards -- Exception: {}", e.Message);
+                            shouldRetry = true;
+                        }
+                        
+
                     }
-                    catch (ElementClickInterceptedException ex)
+
+                    if (currentAttempt == maxRetries && shouldRetry)
                     {
-                        _logger.LogWarning("Element Click Intercepted Exception: " + ex.Message);
-                        break;
+                        _logger.LogWarning("Cannot add Card {} to list, reached max attempts", currentCard);
                     }
-                    catch (StaleElementReferenceException ex)
-                    {
-                        _logger.LogWarning("Stale Element Reference Exception: " + ex.Message);
-                        continue;
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogWarning("Reading Cards -- Exception: {}", e.Message);
-                        continue;
-                    }
-                    
-                    const double maxWaitTime = .8f;
-                    const double minWaitTime = .1f;
-                    var randomWait = rand.NextDouble() * (maxWaitTime - minWaitTime) + minWaitTime;
-                    await Task.Delay(TimeSpan.FromSeconds(randomWait), cancellationToken);
+                    await RandomDelayTask(rand, cancellationToken);
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                _logger.LogWarning("Searching Cards -- Exception: {}", e.Message);
-                return jobPostings;
+                _logger.LogWarning("Searching Cards -- Exception: {}", ex.Message);
+                _logger.LogInformation("Scraping finished, closing web driver. Initial Job Card Count: {} -- Job Cards Scraped {}", cardCount, jobPostings.Count);
+                return new Tuple<IEnumerable<JobPostingDto>, bool>(jobPostings, false);
             }
 
                 
@@ -174,11 +247,12 @@ public class JobScraper : IJobPostingScraper
                     _logger.LogWarning("post going to Next Page");
 
                 }*/
-                
+            
+            _logger.LogInformation("Scraping finished, closing web driver. Initial Job Card Count: {} -- Job Cards Scraped {}", cardCount, jobPostings.Count);
             driver.Quit();
         }
-
-        return jobPostings;
+        
+        return new Tuple<IEnumerable<JobPostingDto>, bool>(jobPostings, true);
     }
 
     bool IsElementStale(IWebElement? element)
@@ -197,4 +271,24 @@ public class JobScraper : IJobPostingScraper
             return true;
         }
     }
-} 
+    
+    private Task RandomDelayTask(Random rand, CancellationToken cancellationToken)
+    {
+        const double maxWaitTime = .3f;
+        const double minWaitTime = .1f;
+        var randomWait = rand.NextDouble() * (maxWaitTime - minWaitTime) + minWaitTime;
+        return Task.Delay(TimeSpan.FromSeconds(randomWait), cancellationToken);
+    }
+
+    private void AddToJobList(ref List<JobPostingDto> jobPostings, string? title, string? location, string? company, string? description, string? salary)
+    {
+        jobPostings.Add(new JobPostingDto
+        {
+            Title = title,
+            Location = location,
+            Company = company,
+            Description = description,
+            Salary = salary, 
+        });
+    }
+}

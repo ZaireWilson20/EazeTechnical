@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="DotNetSeleniumExtras.WaitHelpers" Version="3.11.0" />
         <PackageReference Include="HtmlAgilityPack" Version="1.11.64" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.29" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.29">

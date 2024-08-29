@@ -26,16 +26,19 @@ public class ValidateJsonPropertiesMiddleware
         var allowedProperties = typeof(JobRequestDto).GetProperties()
             .Select(p => p.Name.ToLower())
             .ToHashSet();
-
-        using (JsonDocument document = JsonDocument.Parse(requestBody))
+        if (requestBody != "")
         {
-            foreach (var property in document.RootElement.EnumerateObject())
+            _logger.LogInformation(requestBody);
+            using (JsonDocument document = JsonDocument.Parse(requestBody))
             {
-                if (!allowedProperties.Contains(property.Name.ToLower()))
+                foreach (var property in document.RootElement.EnumerateObject())
                 {
-                    context.Response.StatusCode = StatusCodes.Status404NotFound;
-                    await context.Response.WriteAsync($"Invalid parameter: {property.Name}");
-                    return;
+                    if (!allowedProperties.Contains(property.Name.ToLower()))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
+                        await context.Response.WriteAsync($"Invalid parameter: {property.Name}");
+                        return;
+                    }
                 }
             }
         }

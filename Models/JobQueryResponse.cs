@@ -10,4 +10,6 @@ public class QueryResponse
 {
     public Metadata Metadata { get; set; }
     public List<JobPostingDto> Results { get; set; }
+
+    public String Message { get; set; }
 }
