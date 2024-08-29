@@ -65,7 +65,7 @@ public class JobScraper : IJobPostingScraper
             driver.Navigate().GoToUrl(url);
         
             // Wait for the page to load and elements to be present
-            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(1.5));
+            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
             
             try
             {
@@ -147,8 +147,8 @@ public class JobScraper : IJobPostingScraper
                         continue;
                     }
                     
-                    const double maxWaitTime = 2.0f;
-                    const double minWaitTime = .4f;
+                    const double maxWaitTime = .8f;
+                    const double minWaitTime = .1f;
                     var randomWait = rand.NextDouble() * (maxWaitTime - minWaitTime) + minWaitTime;
                     await Task.Delay(TimeSpan.FromSeconds(randomWait), cancellationToken);
                 }
