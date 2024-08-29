@@ -8,11 +8,19 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0"/>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Controllers\" />
+        <PackageReference Include="HtmlAgilityPack" Version="1.11.64" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.29" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.29">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.29" />
+        <PackageReference Include="Selenium.Support" Version="4.24.0" />
+        <PackageReference Include="Selenium.WebDriver" Version="4.24.0" />
+        <PackageReference Include="Selenium.WebDriver.ChromeDriver" Version="128.0.6613.8400" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+        <PackageReference Include="WebDriverManager" Version="2.17.4" />
     </ItemGroup>
 
 </Project>
