@@ -6,17 +6,8 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddHttpClient("MyClient").ConfigurePrimaryHttpMessageHandler(() =>
-{
-    return new HttpClientHandler
-    {
-        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-    };
-});;
 
 builder.Services.AddSingleton<IJobPostingScraper, JobScraper>();
-int maxPageCount = 100;
 builder.Services.AddControllers();
 
 builder.Logging.ClearProviders();

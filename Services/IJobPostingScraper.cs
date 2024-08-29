@@ -1,7 +1,4 @@
-﻿using System.Net;
-using EazeTechnical.Models;
-using HtmlAgilityPack;
-using Microsoft.AspNetCore.Mvc;
+﻿using EazeTechnical.Models;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
@@ -11,23 +8,19 @@ namespace EazeTechnical.Services;
 
 public interface IJobPostingScraper
 {
-    Task<Tuple<IEnumerable<JobPostingDto>, bool>> ScrapeJobsAsync(string query, string location, int? dateWithin, CancellationToken cancellationToken, int maxPageCount=100);
+    Task<Tuple<IEnumerable<JobPostingDto>, bool>> ScrapeJobsAsync(string query, string location, int? dateWithin, CancellationToken cancellationToken);
 }
 
 public class JobScraper : IJobPostingScraper
 {
-    private readonly IHttpClientFactory _httpClientFactory;
     private const string IndeedJobsUrl = "https://www.indeed.com/jobs";
-    private const string IndeedViewJobUrl = "https://www.indeed.com/viewjob";
     private ILogger<IJobPostingScraper> _logger;
-    public JobScraper(IHttpClientFactory httpClientFactory, ILogger<IJobPostingScraper> logger)
+    public JobScraper(ILogger<IJobPostingScraper> logger)
     {
-        _httpClientFactory = httpClientFactory;
         _logger = logger;
-        //MaxPageCount = maxPageCount;
     }
     
-    public async Task<Tuple<IEnumerable<JobPostingDto>, bool>> ScrapeJobsAsync(string? query, string? location, int? dateWithin, CancellationToken cancellationToken, int maxPageCount=100)
+    public async Task<Tuple<IEnumerable<JobPostingDto>, bool>> ScrapeJobsAsync(string? query, string? location, int? dateWithin, CancellationToken cancellationToken)
     {
         var jobPostings = new List<JobPostingDto>();
         var paramsString = $"?q={query}&l={location}";
@@ -43,28 +36,8 @@ public class JobScraper : IJobPostingScraper
         var rand = new Random();
         using (var driver = new ChromeDriver(options))
         {
-            
-                /*bool hasNextPage = true;
-                IWebElement? nextPageElement = null;
-            
-                try
-                {
-                    wait.Until(findNextPage =>
-                        findNextPage.FindElement(By.XPath("//a[contains(@data-testid, 'pagination-page-next')]")));
-                    nextPageElement =
-                        driver.FindElement(By.XPath("//a[contains(@data-testid, 'pagination-page-next')]"));
-                    _logger.LogWarning("has nex page element - currently on page: {}", driver.Url);
 
-                    hasNextPage = true;
-                }
-                catch (Exception e)
-                {
-                    hasNextPage = false;
-                    _logger.LogWarning("Reading last page -- Exception: {}", e.Message);
-                }*/
-                
             driver.Navigate().GoToUrl(url);
-            
             
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
             int cardCount = 0;
@@ -231,22 +204,7 @@ public class JobScraper : IJobPostingScraper
                 _logger.LogInformation("Scraping finished, closing web driver. Initial Job Card Count: {} -- Job Cards Scraped {}", cardCount, jobPostings.Count);
                 return new Tuple<IEnumerable<JobPostingDto>, bool>(jobPostings, false);
             }
-
-                
-                //TODO: Gotta find a way to get past the unclosable email popup
-                /*if (hasNextPage)
-                {
-                    if (IsElementStale(nextPageElement))
-                    {
-                        return jobPostings;
-                    }
-                    //var nextUrl = nextPageElement?.GetAttribute("href");
-                    _logger.LogWarning("pre going to Next Page {}", "Arrow");
-                    nextPageElement?.Click();
-                    //driver.Navigate().GoToUrl(nextUrl);
-                    _logger.LogWarning("post going to Next Page");
-
-                }*/
+            
             
             _logger.LogInformation("Scraping finished, closing web driver. Initial Job Card Count: {} -- Job Cards Scraped {}", cardCount, jobPostings.Count);
             driver.Quit();
@@ -254,23 +212,7 @@ public class JobScraper : IJobPostingScraper
         
         return new Tuple<IEnumerable<JobPostingDto>, bool>(jobPostings, true);
     }
-
-    bool IsElementStale(IWebElement? element)
-    {
-        if (element == null)
-        {
-            return true;
-        }
-        try
-        {
-            string tagName = element.TagName;
-            return false;
-        }
-        catch
-        {
-            return true;
-        }
-    }
+    
     
     private Task RandomDelayTask(Random rand, CancellationToken cancellationToken)
     {

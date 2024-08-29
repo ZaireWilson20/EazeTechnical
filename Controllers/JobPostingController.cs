@@ -14,7 +14,7 @@ public class JobPostingController : Controller
         (JobsDbContext?)HttpContext.RequestServices.GetService(typeof(JobsDbContext));
     private readonly IJobPostingScraper _jobScraper;
     private readonly ILogger<JobPostingController> _logger;
-    public readonly JobRequestDto DefaultParams;
+    private readonly JobRequestDto DefaultParams;
 
     public JobPostingController(IJobPostingScraper jobScraper, ILogger<JobPostingController> logger)
     {
