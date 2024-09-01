@@ -28,6 +28,7 @@ The Job Scraper API is a web service designed to scrape job postings from variou
 Ensure you have the following environment variables set up in your system:
 
 - `ConnectionStrings__ScrapedJobPostingsDatabase`: Connection string for your PostgreSQL database.
+    - Located in `/{YourProjectName}/appsettings.json`
 - `ChromeWebDriverPath`: Path to ChromeDriver, if it's not added to your system PATH.
 
 ### **Building the API**
