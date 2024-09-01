@@ -35,6 +35,10 @@ public class JobPostingController : Controller
     [HttpPost]
     public async Task<ObjectResult> FindJobsWithParams([FromBody]JobRequestDto jobPostParams, string website)
     {
+        if (_jobsDbContext == null)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, "Database context not available.");
+        }
 
         if (!ModelState.IsValid)
         {
@@ -83,6 +87,7 @@ public class JobPostingController : Controller
                 Results = dbJobPostings ?? jobPostingDtos,
                 Message = scrapedJobs.Item2 ? "Full page scraped." : "Some job posts may be missing due to an exception hit while scraping."
             };
+
             return Ok(response);
             
         }

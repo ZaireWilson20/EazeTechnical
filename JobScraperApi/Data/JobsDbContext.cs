@@ -7,7 +7,6 @@ public class JobsDbContext : DbContext
 {
     public DbSet<QueryResponse> JobPostQueries { get; set; }
     private readonly ILogger<JobsDbContext> _logger;
-
     
     public JobsDbContext(DbContextOptions<JobsDbContext> options, ILogger<JobsDbContext> logger) : base(options)
     {
