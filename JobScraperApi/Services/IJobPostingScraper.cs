@@ -14,10 +14,27 @@ public interface IJobPostingScraper
 public class JobScraper : IJobPostingScraper
 {
     private const string IndeedJobsUrl = "https://www.indeed.com/jobs";
-    private ILogger<IJobPostingScraper> _logger;
-    public JobScraper(ILogger<IJobPostingScraper> logger)
+    public const string CardContainerXPath = "//div[contains(@data-testid, 'slider_container')]";
+    public const string CardJobLocationXPath = ".//div[contains(@data-testid, 'text-location')]";
+    public const string CardJobCompanyXPath = ".//span[contains(@data-testid, 'company-name')]";
+    public const string CardJobTitleXPath = ".//a[contains(@class, 'jcs-JobTitle')]";
+    public const string CardJobTimePostedXPath = ".//span[contains(@data-testid, 'myJobsStateDate')]";
+    public const string PageJobInfoComponentXPath = "//div[contains(@class, 'jobsearch-JobComponent')]";
+    public const string PageJobDescriptionXPath = "//div[contains(@id, 'jobDescriptionText')]" ;
+    public const string PageSalaryContainerXPath = "//div[contains(@id, 'salaryInfoAndJobType')]" ;
+
+    public List<Tuple<string, string>> XPathWarningExceptions; 
+    private readonly ILogger<IJobPostingScraper> _logger;
+    private readonly IWebDriverFactory _webDriverFactory;
+    private readonly IWebDriverWaitFactory _webDriverWaitFactory;
+
+    public bool ScrapJobsTestFlag = false;
+    public JobScraper(ILogger<IJobPostingScraper> logger, IWebDriverFactory webDriverFactory, IWebDriverWaitFactory webDriverWaitFactory)
     {
+        XPathWarningExceptions = new List<Tuple<string, string>>();
         _logger = logger;
+        _webDriverFactory = webDriverFactory;
+        _webDriverWaitFactory = webDriverWaitFactory;
     }
     
     public async Task<Tuple<IEnumerable<JobPostingDto>, bool>> ScrapeJobsAsync(string? query, string? location, int? dateWithin, CancellationToken cancellationToken)
@@ -26,25 +43,19 @@ public class JobScraper : IJobPostingScraper
         var paramsString = $"?q={query}&l={location}";
         var url = IndeedJobsUrl + paramsString;
         
-        var options = new ChromeOptions();
-        options.AddArgument("--headless"); 
-        options.AddArgument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
-        options.AddArgument("--log-level=1");
-        options.AddArgument("--disable-gpu");
-        options.AddArgument("--no-sandbox");
         
         var rand = new Random();
-        using (var driver = new ChromeDriver(options))
+        using (var driver = _webDriverFactory.Create())
         {
 
             driver.Navigate().GoToUrl(url);
             
-            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+            var wait = _webDriverWaitFactory.Create(driver, TimeSpan.FromSeconds(10));
             int cardCount = 0;
             try
             {
                 // Wait til card containers are found
-                var allCards = wait.Until(card => card.FindElements(By.XPath("//div[contains(@data-testid, 'slider_container')]")));
+                var allCards = wait.Until(card => card.FindElements(By.XPath(CardContainerXPath)));
                 cardCount = allCards.Count;
                 int currentCard = 1;
                 _logger.LogInformation("Scraping Started, opened web driver. Initial Job Card Count: {} -- Job Cards Scraped {}", cardCount, jobPostings.Count);
@@ -70,33 +81,33 @@ public class JobScraper : IJobPostingScraper
                             try
                             {
                                 jobLocation = jobPost
-                                    .FindElement(By.XPath(".//div[contains(@data-testid, 'text-location')]")).Text;
+                                    .FindElement(By.XPath(CardJobLocationXPath)).Text;
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogWarning("Finding Job Location -- Exception: {}", ex.Message);
+                                XPathWarningExceptions.Add(new Tuple<string, string>(CardJobLocationXPath, ex.Message));
                             }
                             
                             // Look for job company
                             string? jobCompany = null;
                             try
                             {
-                                jobCompany = jobPost.FindElement(By.XPath(".//span[contains(@data-testid, 'company-name')]")).Text;
+                                jobCompany = jobPost.FindElement(By.XPath(CardJobCompanyXPath)).Text;
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogWarning("Finding Job Company -- Exception: {}", ex.Message);
+                                XPathWarningExceptions.Add(new Tuple<string, string>(CardJobCompanyXPath, ex.Message));
                             }
 
                             // Look for job Title
                             string? jobTitle = null;
                             try
                             {
-                                jobTitle = jobPost.FindElement(By.XPath(".//a[contains(@class, 'jcs-JobTitle')]")).Text;
+                                jobTitle = jobPost.FindElement(By.XPath(CardJobTitleXPath)).Text;
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogWarning("Finding Job Title -- Exception: {}", ex.Message);
+                                XPathWarningExceptions.Add(new Tuple<string, string>(CardJobTitleXPath, ex.Message));
                             }
                             
                             bool withinDateRange = true;
@@ -104,7 +115,7 @@ public class JobScraper : IJobPostingScraper
                             {
                                 try
                                 {
-                                    var jobDays = jobPost.FindElement(By.XPath(".//span[contains(@data-testid, 'myJobsStateDate')]")).Text;
+                                    var jobDays = jobPost.FindElement(By.XPath(CardJobTimePostedXPath)).Text;
                                     string days = new String(jobDays.Where(Char.IsDigit).ToArray());
                                     if (days.Length > 0)
                                     {
@@ -114,7 +125,7 @@ public class JobScraper : IJobPostingScraper
                                 }
                                 catch (Exception ex)
                                 {
-                                    _logger.LogWarning("Looking For Job Day Post/Active -- Exception: {}", ex.Message);
+                                    XPathWarningExceptions.Add(new Tuple<string, string>(CardJobTimePostedXPath, ex.Message));
                                 }
 
                             }
@@ -129,11 +140,11 @@ public class JobScraper : IJobPostingScraper
                             {
                                 // Waiting til full details window is up
                                 wait.Until(moreDetails =>
-                                    moreDetails.FindElement(By.XPath("//div[contains(@class, 'jobsearch-JobComponent')]")));
+                                    moreDetails.FindElement(By.XPath(PageJobInfoComponentXPath)));
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogWarning("Waiting for Full Details Element -- Exception: {}", ex.Message);
+                                XPathWarningExceptions.Add(new Tuple<string, string>(PageJobInfoComponentXPath, ex.Message));
                                 continue;
                             }
          
@@ -141,7 +152,7 @@ public class JobScraper : IJobPostingScraper
                             try
                             {
                                 jobDescription = driver
-                                    .FindElement(By.XPath("//div[contains(@id, 'jobDescriptionText')]")).Text;
+                                    .FindElement(By.XPath(PageJobDescriptionXPath)).Text;
                             }
                             catch (StaleElementReferenceException)
                             {
@@ -152,19 +163,19 @@ public class JobScraper : IJobPostingScraper
                             catch (Exception ex)
                             {
                                 jobDescription = null;
-                                _logger.LogWarning("Finding Job Description -- Exception: {}", ex.Message);
+                                XPathWarningExceptions.Add(new Tuple<string, string>(PageJobDescriptionXPath, ex.Message));
                             }
 
                             string? jobSalary = null;
                             try
                             {
-                                jobSalary = driver.FindElement(By.XPath("//div[contains(@id, 'salaryInfoAndJobType')]")).FindElement(By.XPath(".//span")).Text;
+                                jobSalary = driver.FindElement(By.XPath(PageSalaryContainerXPath)).FindElement(By.XPath(".//span")).Text;
                                 jobSalary = jobSalary.IndexOf("$", StringComparison.Ordinal) == 0 ? jobSalary : null;
                             }
                             catch (Exception ex)
                             {
                                 jobSalary = null;
-                                _logger.LogWarning("Finding Job Salary -- Exception: {}", ex.Message);
+                                XPathWarningExceptions.Add(new Tuple<string, string>(PageSalaryContainerXPath, ex.Message));
                             }
                             
                             
@@ -173,7 +184,7 @@ public class JobScraper : IJobPostingScraper
                         // Most likely due to popup that cannot be close -- just return what has been collected so far
                         catch (ElementClickInterceptedException ex)
                         {
-                            _logger.LogWarning("Element Click Intercepted Exception: " + ex.Message);
+                            _logger.LogError("Element Click Intercepted Exception: {}\nStack Trace:\n{}", ex.Message, ex.StackTrace);
                             _logger.LogInformation("Scraping finished, closing web driver. Initial Job Card Count: {} -- Job Cards Scraped {}", cardCount, jobPostings.Count);
                             return new Tuple<IEnumerable<JobPostingDto>, bool>(jobPostings, false);
                         }
@@ -182,9 +193,9 @@ public class JobScraper : IJobPostingScraper
                             _logger.LogWarning("Stale Element Reference Exception: " + ex.Message);
                             shouldRetry = true;
                         }
-                        catch (Exception e)
+                        catch (Exception ex)
                         {
-                            _logger.LogWarning("Reading Cards -- Exception: {}", e.Message);
+                            _logger.LogWarning("Reading Cards -- Exception: {}", ex.Message);
                             shouldRetry = true;
                         }
                         
@@ -200,7 +211,7 @@ public class JobScraper : IJobPostingScraper
             }
             catch (Exception ex)
             {
-                _logger.LogWarning("Searching Cards -- Exception: {}", ex.Message);
+                _logger.LogError("Searching Cards -- Exception: {}\nStack Trace:\n{}", ex.Message, ex.StackTrace);
                 _logger.LogInformation("Scraping finished, closing web driver. Initial Job Card Count: {} -- Job Cards Scraped {}", cardCount, jobPostings.Count);
                 return new Tuple<IEnumerable<JobPostingDto>, bool>(jobPostings, false);
             }

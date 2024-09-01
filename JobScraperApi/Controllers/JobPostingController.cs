@@ -3,6 +3,7 @@ using EazeTechnical.Data;
 using EazeTechnical.Models;
 using EazeTechnical.Services;
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
 
 namespace EazeTechnical.Controllers;
 
@@ -15,6 +16,8 @@ public class JobPostingController : Controller
     private readonly IJobPostingScraper _jobScraper;
     private readonly ILogger<JobPostingController> _logger;
     private readonly JobRequestDto DefaultParams;
+
+    public bool BadDbTestFailFlag = false;
 
     public JobPostingController(IJobPostingScraper jobScraper, ILogger<JobPostingController> logger, JobsDbContext dataContext)
     {
@@ -64,23 +67,24 @@ public class JobPostingController : Controller
                 _logger.LogError("Saving to DB Exception: {} - Stack Trace: {}", ex.Message, ex.StackTrace);
             }
 
+
+            List<JobPostingDto>? dbJobPostings = null;
             if (dbQueryRow != null)
             {
-                List<JobPostingDto>? dbJobPostings = JsonSerializer.Deserialize<List<JobPostingDto>>(dbQueryRow.Results);
-                var response = new QueryResponseDto
-                {
-                    Metadata = new Metadata
-                    {
-                        QueryId = dbQueryRow.Id
-                    },
-                    Results = dbJobPostings,
-                    Message = scrapedJobs.Item2 ? "Full page scraped." : "Some job posts may be missing due to an exception hit while scraping."
-                };
-                return Ok(response);
+                JsonSerializer.Deserialize<List<JobPostingDto>>(dbQueryRow.Results);
             }
             
+            var response = new QueryResponseDto
+            {
+                Metadata = new Metadata
+                {
+                    QueryId = dbQueryRow?.Id ?? -1
+                },
+                Results = dbJobPostings ?? jobPostingDtos,
+                Message = scrapedJobs.Item2 ? "Full page scraped." : "Some job posts may be missing due to an exception hit while scraping."
+            };
+            return Ok(response);
             
-            return StatusCode(StatusCodes.Status500InternalServerError, "Unable to access database.");
         }
         catch (OperationCanceledException)
         {
@@ -124,9 +128,22 @@ public class JobPostingController : Controller
     
     public async Task<QueryResponse> SaveDataAsync(QueryResponse model)
     {
-        _jobsDbContext.JobPostQueries.Add(model);
+
+        try
+        {
+            if (BadDbTestFailFlag)
+            {
+                throw new Exception();
+            }
+            _jobsDbContext.JobPostQueries.Add(model);
         
-        await _jobsDbContext.SaveChangesAsync();
+            await _jobsDbContext.SaveChangesAsync();
+        }
+        catch
+        {
+            throw new NpgsqlException();
+        }
+
 
         return model;
     }

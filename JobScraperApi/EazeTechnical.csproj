@@ -23,6 +23,32 @@
         <PackageReference Include="Selenium.WebDriver.ChromeDriver" Version="128.0.6613.8400" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
         <PackageReference Include="WebDriverManager" Version="2.17.4" />
+        <InteralsVisibleTo Include="EazeTechnical.ScraperApiTests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="JobScraperApi.Tests\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="JobScraperApi.Tests\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Remove="JobScraperApi.Tests\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="JobScraperApi.Tests\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="JobScraperApi.Tests\bin\Debug\net6.0\JobScraperApi.Tests.deps.json" />
+      <_ContentIncludedByDefault Remove="JobScraperApi.Tests\bin\Debug\net6.0\JobScraperApi.Tests.runtimeconfig.json" />
+      <_ContentIncludedByDefault Remove="JobScraperApi.Tests\global.json" />
+      <_ContentIncludedByDefault Remove="JobScraperApi.Tests\obj\JobScraperApi.Tests.csproj.nuget.dgspec.json" />
+      <_ContentIncludedByDefault Remove="JobScraperApi.Tests\obj\project.assets.json" />
+      <_ContentIncludedByDefault Remove="JobScraperApi.Tests\obj\project.packagespec.json" />
     </ItemGroup>
 
 </Project>
