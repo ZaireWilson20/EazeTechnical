@@ -84,12 +84,12 @@ $body = @{
     LastNdays = 7
 } | ConvertTo-Json
 
-Invoke-RestMethod -Uri "https://localhost:5001/scrape/indeed" -Method Post -Body $body -ContentType "application/json"
+Invoke-RestMethod -Uri "https://localhost:7130/scrape/indeed" -Method Post -Body $body -ContentType "application/json"
 ```
 #### **Get Scrape Results Using Powershell**
 To retrieve the results of a previous scrape operation by query ID:
 ```
-Invoke-RestMethod -Uri "https://localhost:5001/scrape/1" -Method Get
+Invoke-RestMethod -Uri "https://localhost:7130/scrape/1" -Method Get
 ```
 ### **Response Structure**
 Both the POST and GET requests return a response in the following JSON format:
@@ -119,7 +119,7 @@ Both the POST and GET requests return a response in the following JSON format:
 ### **Postman Example**
 1. **Scrape Jobs**
     - Method: `POST`
-    - URL: `https://localhost:5001/scrape/indeed`
+    - URL: `https://localhost:7130/scrape/indeed`
     - Body (JSON):
         ```
         {
@@ -130,7 +130,7 @@ Both the POST and GET requests return a response in the following JSON format:
         ```
 2. **Get Scrape Results:**
     - Method: `GET`
-    - URL: `https://localhost:5001/scrape/1`
+    - URL: `https://localhost:7130/scrape/1`
 
 ## **Design Decisions**
 ### **JSON Validation Middleware**
