@@ -137,6 +137,7 @@ public class JobScraper : IJobPostingScraper
                                 continue;
                             }
          
+                            // Look for job description
                             string? jobDescription = null;
                             try
                             {
@@ -155,6 +156,7 @@ public class JobScraper : IJobPostingScraper
                                 _logger.LogWarning("Finding Job Description -- Exception: {}", ex.Message);
                             }
 
+                            // Look for job salary
                             string? jobSalary = null;
                             try
                             {
