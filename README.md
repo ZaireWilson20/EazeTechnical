@@ -21,7 +21,7 @@ The Job Scraper API is a web service designed to scrape job postings from variou
 - [.NET 6 SDK](https://dotnet.microsoft.com/download/dotnet/6.0)
 - [PostgreSQL](https://www.postgresql.org/download/)
 - [ChromeDriver](https://sites.google.com/chromium.org/driver/) installed and available in the system PATH
-- Docker (optional, if you prefer to run PostgreSQL in a container)
+- [Postman](https://www.postman.com/downloads/) (optional, if you prefer using a GUI to send https requests)
 
 ### **Environment Variables**
 
