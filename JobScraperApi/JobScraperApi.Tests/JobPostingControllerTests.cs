@@ -15,10 +15,9 @@ public class JobsPostingControllerTests
 {
 private readonly Mock<IJobPostingScraper> _mockJobScraper;
     private readonly Mock<ILogger<JobPostingController>> _mockLogger;
-    private readonly Mock<ILogger<JobsDbContext>> _mockDbContextLogger;  // Mock logger for JobsDbContext
+    private readonly Mock<ILogger<JobsDbContext>> _mockDbContextLogger;
     private readonly JobPostingController _controller;
     private readonly JobsDbContext _dbContext;
-    private readonly Mock<JobsDbContext> _mockDbContext;
     
 
 
@@ -27,7 +26,7 @@ private readonly Mock<IJobPostingScraper> _mockJobScraper;
         _mockJobScraper = new Mock<IJobPostingScraper>();
         _mockLogger = new Mock<ILogger<JobPostingController>>();
         _mockDbContextLogger = new Mock<ILogger<JobsDbContext>>();
-        _mockDbContext = new Mock<JobsDbContext>();
+        
         // Setup in-memory database context
         var options = new DbContextOptionsBuilder<JobsDbContext>()
             .UseInMemoryDatabase(databaseName: "TestDatabase")
@@ -64,7 +63,7 @@ private readonly Mock<IJobPostingScraper> _mockJobScraper;
     {
         // Arrange
         var jobRequest = new JobRequestDto { Query = "farm", Location = "Idaho", LastNdays = 7 };
-        var website = "indeed.com";
+        var website = "indeed";
         var jobPostings = new List<JobPostingDto> { new() }; 
 
         _mockJobScraper
