@@ -57,7 +57,7 @@ To run the API, use the following command in PowerShell:
 ```
 dotnet run
 ```
-The API will be available at https://localhost:5001 by default. You can test the endpoints using tools like Postman or PowerShell.
+The API will be available at https://localhost:7130 and https://localhost:5279 by default. You can test the endpoints using tools like Postman or PowerShell.
 ### **Running the Tests**
 1. **Navigate to the test project directory:**
 
