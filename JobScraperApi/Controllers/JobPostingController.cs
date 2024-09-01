@@ -75,7 +75,7 @@ public class JobPostingController : Controller
             List<JobPostingDto>? dbJobPostings = null;
             if (dbQueryRow != null)
             {
-                JsonSerializer.Deserialize<List<JobPostingDto>>(dbQueryRow.Results);
+                dbJobPostings = JsonSerializer.Deserialize<List<JobPostingDto>>(dbQueryRow.Results);
             }
             
             var response = new QueryResponseDto
