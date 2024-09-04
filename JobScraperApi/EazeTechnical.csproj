@@ -23,7 +23,6 @@
         <PackageReference Include="Selenium.WebDriver.ChromeDriver" Version="128.0.6613.8400" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
         <PackageReference Include="WebDriverManager" Version="2.17.4" />
-        <InteralsVisibleTo Include="EazeTechnical.ScraperApiTests"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -49,6 +48,10 @@
       <_ContentIncludedByDefault Remove="JobScraperApi.Tests\obj\JobScraperApi.Tests.csproj.nuget.dgspec.json" />
       <_ContentIncludedByDefault Remove="JobScraperApi.Tests\obj\project.assets.json" />
       <_ContentIncludedByDefault Remove="JobScraperApi.Tests\obj\project.packagespec.json" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Utilities\" />
     </ItemGroup>
 
 </Project>
