@@ -49,19 +49,28 @@ private readonly Mock<IJobPostingScraper> _mockJobScraper;
         // Reset
         _dbContext.JobPostQueries.RemoveRange(_dbContext.JobPostQueries);
         _dbContext.SaveChanges();
-        
-        var initialData = new List<QueryResponse>
-        {
-            new() { Id = 1, Results = JsonSerializer.Serialize(new List<JobPostingDto>()) },
-            new() { Id = 2, Results = JsonSerializer.Serialize(new List<JobPostingDto>()) },
-            new() { Id = 3, Results = JsonSerializer.Serialize(new List<JobPostingDto>()) },
-            new() { Id = 4, Results = JsonSerializer.Serialize(new List<JobPostingDto>()) },
-            new() { Id = 5, Results = JsonSerializer.Serialize(new List<JobPostingDto>()) },
-            new() { Id = 6, Results = JsonSerializer.Serialize(new List<JobPostingDto>()) },
-        };
 
-        _dbContext.JobPostQueries.AddRange(initialData);
-        _dbContext.SaveChanges();
+        try
+        {
+
+            var initialData = new List<QueryResponse>
+            {
+                new() { Id = 1, Results = JsonSerializer.Serialize(new List<JobPostingDto>()) },
+                new() { Id = 2, Results = JsonSerializer.Serialize(new List<JobPostingDto>()) },
+                new() { Id = 3, Results = JsonSerializer.Serialize(new List<JobPostingDto>()) },
+                new() { Id = 4, Results = JsonSerializer.Serialize(new List<JobPostingDto>()) },
+                new() { Id = 5, Results = JsonSerializer.Serialize(new List<JobPostingDto>()) },
+                new() { Id = 6, Results = JsonSerializer.Serialize(new List<JobPostingDto>()) },
+            };
+            
+            _dbContext.JobPostQueries.AddRange(initialData);
+            _dbContext.SaveChanges();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("Error seeding mock database: " + ex.Message, ex);        
+        }
+
     }
 
     [Fact]
