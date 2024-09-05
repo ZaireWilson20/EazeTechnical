@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using EazeTechnical.Controllers;
 using EazeTechnical.Data;
@@ -32,7 +33,12 @@ private readonly Mock<IJobPostingScraper> _mockJobScraper;
             .UseInMemoryDatabase(databaseName: "TestDatabase")
             .Options;
         _dbContext = new JobsDbContext(options, _mockDbContextLogger.Object);
-        _controller = new JobPostingController(_mockJobScraper.Object, _mockLogger.Object, _dbContext);
+        var jsonSerializerOptions = new JsonSerializerOptions
+        {
+            ReferenceHandler = ReferenceHandler.IgnoreCycles,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        _controller = new JobPostingController(_mockJobScraper.Object, _mockLogger.Object, _dbContext, jsonSerializerOptions);
         
         SeedDatabase();
     }

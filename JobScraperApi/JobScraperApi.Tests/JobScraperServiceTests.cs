@@ -4,6 +4,7 @@ using EazeTechnical.Services;
 using EazeTechnical.Utilities;
 using Microsoft.Extensions.Logging;
 using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
 using Xunit.Abstractions;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
@@ -15,8 +16,9 @@ public class JobScraperTests
     private readonly Mock<IWebDriver> _mockDriver;
     private readonly Mock<IWebDriverWait> _mockWebDriverWait;
     private readonly Mock<IWebElement> _mockElement;
-    private readonly Mock<IWebDriverFactory> _mockWebDriverFactory;
-    private readonly Mock<IWebDriverWaitFactory> _mockWebDriverWaitFactory;
+    private readonly Mock<WebDriverFactory> _mockWebDriverFactory;
+    private readonly Mock<WebDriverWaitFactory> _mockWebDriverWaitFactory;
+    private ChromeOptions _chromeOptions;
 
     public JobScraperTests(ITestOutputHelper testOutputHelper)
     {
@@ -24,11 +26,18 @@ public class JobScraperTests
         _mockDriver = new Mock<IWebDriver>();
         _mockWebDriverWait = new Mock<IWebDriverWait>();
         _mockElement = new Mock<IWebElement>();
-        _mockWebDriverFactory = new Mock<IWebDriverFactory>();
+        _mockWebDriverFactory = new Mock<WebDriverFactory>();
         _mockWebDriverFactory.Setup(f => f.Create()).Returns(_mockDriver.Object);
-        _mockWebDriverWaitFactory = new Mock<IWebDriverWaitFactory>();
+        _mockWebDriverWaitFactory = new Mock<WebDriverWaitFactory>();
         _mockWebDriverWaitFactory.Setup(f => f.Create(It.IsAny<IWebDriver>(), It.IsAny<TimeSpan>()))
             .Returns(_mockWebDriverWait.Object);
+        _chromeOptions = new ChromeOptions();
+        _chromeOptions.AddArgument("--headless");
+        _chromeOptions.AddArgument(
+            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+        _chromeOptions.AddArgument("--log-level=1");
+        _chromeOptions.AddArgument("--disable-gpu");
+        _chromeOptions.AddArgument("--no-sandbox");
     }
 
     [Fact]
@@ -37,7 +46,7 @@ public class JobScraperTests
         // Arrange
         var logMessages = new List<string>();
         var logger = LoggerSetup(logMessages);
-        var jobScraper = new JobScraper(logger.Object, _mockWebDriverFactory.Object, _mockWebDriverWaitFactory.Object);
+        var jobScraper = new JobScraper(logger.Object, _mockWebDriverFactory.Object, _mockWebDriverWaitFactory.Object, _chromeOptions);
 
         var mockedElementCollection = new List<IWebElement> { _mockElement.Object }.AsReadOnly();
 
@@ -95,7 +104,7 @@ public class JobScraperTests
         var logMessages = new List<string>();
         var logger = LoggerSetup(logMessages);
 
-        var jobScraper = new JobScraper(logger.Object, _mockWebDriverFactory.Object, _mockWebDriverWaitFactory.Object);
+        var jobScraper = new JobScraper(logger.Object, _mockWebDriverFactory.Object, _mockWebDriverWaitFactory.Object, _chromeOptions);
 
         _mockDriver.Setup(d => d.Navigate().GoToUrl(It.IsAny<string>()));
         _mockDriver.Setup(d => d.FindElements(By.XPath(ProjectConstants.Xpaths.CardContainerXPath)))
@@ -193,7 +202,7 @@ public class JobScraperTests
         _mockWebDriverWait.Setup(wait => wait.Until(It.IsAny<Func<IWebDriver, IReadOnlyCollection<IWebElement>>>()))
             .Returns(mockedElementCollection);
 
-        var jobScraper = new JobScraper(logger.Object, _mockWebDriverFactory.Object, _mockWebDriverWaitFactory.Object);
+        var jobScraper = new JobScraper(logger.Object, _mockWebDriverFactory.Object, _mockWebDriverWaitFactory.Object, _chromeOptions);
 
         // Act
         var result = await jobScraper.ScrapeJobsAsync("Software Engineer", "New York", 7, CancellationToken.None);

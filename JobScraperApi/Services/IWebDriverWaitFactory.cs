@@ -1,17 +1,23 @@
-﻿using OpenQA.Selenium;
+﻿using EazeTechnical.Utilities;
+using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 
 namespace EazeTechnical.Services;
 
-public interface IWebDriverWaitFactory
+public class WebDriverWaitFactory : IFactory<IWebDriverWait>
 {
-    IWebDriverWait Create(IWebDriver driver, TimeSpan timeout);
-}
-
-public class WebDriverWaitFactory : IWebDriverWaitFactory
-{
-    public IWebDriverWait Create(IWebDriver driver, TimeSpan timeout)
+    /// <summary>
+    /// Creates a new instance of IWebDriverWait.
+    /// </summary>
+    /// <param name="args">Expected arguments: IWebDriver driver, TimeSpan timeout.</param>
+    /// <returns>A configured IWebDriverWait instance.</returns>
+    /// <exception cref="ArgumentException">Thrown when the arguments are invalid.</exception>
+    public IWebDriverWait Create(params object[] args)
     {
+        if (args.Length != 2 || args[0] is not IWebDriver driver || args[1] is not TimeSpan timeout)
+        {
+            throw new InvalidFactoryArgumentsException(ProjectConstants.ExceptionArgumentMessages.InvalidFactoryArgument + ProjectConstants.GeneralUseString.WebDriverWaitClass);
+        }
         var webDriverWait = new WebDriverWait(driver, timeout);
         return new WebDriverWaitWrapper(webDriverWait);
     }

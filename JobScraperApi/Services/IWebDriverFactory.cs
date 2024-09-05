@@ -1,25 +1,27 @@
-﻿using OpenQA.Selenium;
+﻿using EazeTechnical.Utilities;
+using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 
 namespace EazeTechnical.Services;
 
-public interface IWebDriverFactory
+
+public class WebDriverFactory : IFactory<IWebDriver>
 {
-    IWebDriver Create();
-}
-
-public class WebDriverFactory : IWebDriverFactory
-{
-    private readonly ChromeOptions _options;
-
-    public WebDriverFactory(ChromeOptions options)
+    
+    /// <summary>
+    /// Creates a new instance of IWebDriver.
+    /// </summary>
+    /// <param name="args">Expected arguments: ChromeOptions options.</param>
+    /// <returns>A configured IWebDriver instance.</returns>
+    /// <exception cref="ArgumentException">Thrown when the arguments are invalid.</exception>
+    public IWebDriver Create(params object[] args)
     {
-        _options = options;
-    }
+        if (args.Length != 1 || args[0] is not ChromeOptions options)
+        {
+            throw new InvalidFactoryArgumentsException(ProjectConstants.ExceptionArgumentMessages.InvalidFactoryArgument + ProjectConstants.GeneralUseString.WebDriverClass);
+        }
 
-    public IWebDriver Create()
-    {
-        return new ChromeDriver(_options);
+        return new ChromeDriver(options);
     }
 }
 

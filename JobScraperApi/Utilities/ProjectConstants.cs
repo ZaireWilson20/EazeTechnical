@@ -27,6 +27,7 @@ public static class ProjectConstants
         public const string ScrapeRequestTimeout408 = "The scraping operation timed out.";
         public const string GenericInternalError500 = "An error occurred";
         public const string SeleniumClickInterceptException = "Element Click Intercepted Exception";
+        public const string QueryIdNotInDatabase404 = "Query ID not found in database.";
     }
     
     public struct ResponseWarningMessages
@@ -41,12 +42,29 @@ public static class ProjectConstants
         public const string FindSuccessResponse200 = "Full page scraped.";
         public const string FindByIdSuccessResponse200 = "Query Retrieved";
     }
+
+    public struct ExceptionTypeStrings
+    {
+        public const string InvalidFactoryArguments = "Invalid Factory Arguments Exception";
+    }    
+    
+    public struct ExceptionArgumentMessages
+    {
+        public const string InvalidFactoryArgument = "Invalid arguments for creating: ";
+    }
     
     public struct JobRequestDefaultFields
     {
         public const string Query = "Cannabis";
         public const string Location = "California";
         public const int LastNdays = -1;
+    }
+
+    public struct GeneralUseString
+    {
+        public const string EmptyJsonObj = "{}";
+        public const string WebDriverClass = "WebDriver";
+        public const string WebDriverWaitClass = "WebDriverWait";
     }
     
     
