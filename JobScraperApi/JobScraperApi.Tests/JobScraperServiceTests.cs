@@ -1,6 +1,7 @@
 ﻿using EazeTechnical.Models;
 using Moq;
 using EazeTechnical.Services;
+using EazeTechnical.Utilities;
 using Microsoft.Extensions.Logging;
 using OpenQA.Selenium;
 using Xunit.Abstractions;
@@ -27,7 +28,8 @@ public class JobScraperTests
         _mockWebDriverFactory.Setup(f => f.Create()).Returns(_mockDriver.Object);
         _mockWebDriverWaitFactory = new Mock<IWebDriverWaitFactory>();
         _mockWebDriverWaitFactory.Setup(f => f.Create(It.IsAny<IWebDriver>(), It.IsAny<TimeSpan>()))
-            .Returns(_mockWebDriverWait.Object);}
+            .Returns(_mockWebDriverWait.Object);
+    }
 
     [Fact]
     public async Task ScrapeJobsAsync_ReturnsJobPostings()
@@ -42,30 +44,30 @@ public class JobScraperTests
         _mockDriver.Reset();
         _mockDriver.Setup(driver => driver.Navigate().GoToUrl(It.IsAny<string>()));
         // Mock to return a list of web elements as job postings
-        _mockDriver.Setup(d => d.FindElements(By.XPath(JobScraper.CardContainerXPath)))
+        _mockDriver.Setup(d => d.FindElements(By.XPath(ProjectConstants.Xpaths.CardContainerXPath)))
             .Returns(mockedElementCollection);
-        
+
         _mockWebDriverWait.Reset();
         _mockWebDriverWait.Setup(wait => wait.Until(It.IsAny<Func<IWebDriver, IReadOnlyCollection<IWebElement>>>()))
             .Returns(mockedElementCollection);
 
         _mockElement.Reset();
-        
+
         // Job posted within the last day
-        _mockElement.Setup(e => e.FindElement(By.XPath(JobScraper.CardJobTimePostedXPath)).Text)
+        _mockElement.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.CardJobTimePostedXPath)).Text)
             .Returns(() => "1");
-        
-        _mockElement.Setup(e => e.FindElement(By.XPath(JobScraper.CardJobLocationXPath)).Text)
+
+        _mockElement.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.CardJobLocationXPath)).Text)
             .Returns(() => MockJobData.JobLocations[0]);
-        _mockElement.Setup(e => e.FindElement(By.XPath(JobScraper.CardJobTitleXPath)).Text)
+        _mockElement.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.CardJobTitleXPath)).Text)
             .Returns(() => MockJobData.JobTitles[0]);
-        _mockElement.Setup(e => e.FindElement(By.XPath(JobScraper.CardJobCompanyXPath)).Text)
+        _mockElement.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.CardJobCompanyXPath)).Text)
             .Returns(() => MockJobData.JobCompanies[0]);
-        _mockDriver.Setup(e => e.FindElement(By.XPath(JobScraper.PageJobDescriptionXPath)).Text)
+        _mockDriver.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.PageJobDescriptionXPath)).Text)
             .Returns(() => MockJobData.JobDescriptions[0]);
-        _mockDriver.Setup(e => e.FindElement(By.XPath(JobScraper.PageSalaryContainerXPath)).FindElement(By.XPath(".//span")).Text)
+        _mockDriver.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.PageSalaryContainerXPath)).FindElement(By.XPath(ProjectConstants.Xpaths.LocalSpanPath)).Text)
             .Returns(() => MockJobData.JobSalaries[0]);
-        
+
         _mockElement.Setup(elem => elem.Click());
         _mockDriver.Setup(driver => driver.Quit());
 
@@ -85,18 +87,18 @@ public class JobScraperTests
         Assert.Equal(jobResult.Location, MockJobData.JobLocations[0]);
         Assert.True(result.Item2);
     }
-    
+
     [Fact]
     public async Task ScrapeJobsAsync_JobCardElementNotFound_ReturnsScraperError()
     {
         // Arrange
         var logMessages = new List<string>();
         var logger = LoggerSetup(logMessages);
-        
+
         var jobScraper = new JobScraper(logger.Object, _mockWebDriverFactory.Object, _mockWebDriverWaitFactory.Object);
 
         _mockDriver.Setup(d => d.Navigate().GoToUrl(It.IsAny<string>()));
-        _mockDriver.Setup(d => d.FindElements(By.XPath(JobScraper.CardContainerXPath)))
+        _mockDriver.Setup(d => d.FindElements(By.XPath(ProjectConstants.Xpaths.CardContainerXPath)))
             .Throws<NoSuchElementException>();
 
         // Act
@@ -106,7 +108,7 @@ public class JobScraperTests
         // Assert
         Assert.False(result.Item2);
     }
-    
+
     [Theory]
     [InlineData("Title")]
     [InlineData("Location")]
@@ -116,91 +118,90 @@ public class JobScraperTests
     public async Task ScrapeJobsAsync_JobFieldElementNotFound_ReturnsWithNullField(string field)
     {
         // Arrange
-        
+
         var logMessages = new List<string>();
         var logger = LoggerSetup(logMessages);
-        
+
         _mockDriver.Reset();
         _mockDriver.Setup(d => d.Navigate().GoToUrl(It.IsAny<string>()));
-        
+
         _mockElement.Reset();
         // Job posted within the last day
-        _mockElement.Setup(e => e.FindElement(By.XPath(JobScraper.CardJobTimePostedXPath)).Text)
+        _mockElement.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.CardJobTimePostedXPath)).Text)
             .Returns(() => "1");
-        
+
         var mockedElementCollection = new List<IWebElement> { _mockElement.Object }.AsReadOnly();
-        // Mock to return a list of (1) web elements as job postings 
-        _mockDriver.Setup(d => d.FindElements(By.XPath(JobScraper.CardContainerXPath)))
+        // Mock to return a list of (1) web elements as job postings
+        _mockDriver.Setup(d => d.FindElements(By.XPath(ProjectConstants.Xpaths.CardContainerXPath)))
             .Returns(mockedElementCollection);
-        
+
         // Mock the FindElement method to throw an exception for the field provided
         switch (field)
         {
             case "Title":
-                _mockElement.Setup(e => e.FindElement(By.XPath(JobScraper.CardJobTitleXPath))).Throws(new NoSuchElementException());
+                _mockElement.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.CardJobTitleXPath))).Throws(new NoSuchElementException());
                 break;
             case "Location":
-                _mockElement.Setup(e => e.FindElement(By.XPath(JobScraper.CardJobLocationXPath))).Throws(new NoSuchElementException());
+                _mockElement.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.CardJobLocationXPath))).Throws(new NoSuchElementException());
                 break;
             case "CompanyName":
-                _mockElement.Setup(e => e.FindElement(By.XPath(JobScraper.CardJobCompanyXPath))).Throws(new NoSuchElementException());
+                _mockElement.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.CardJobCompanyXPath))).Throws(new NoSuchElementException());
                 break;
             case "Salary":
-                _mockDriver.Setup(e => e.FindElement(By.XPath(JobScraper.PageSalaryContainerXPath))).Throws(new NoSuchElementException());
+                _mockDriver.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.PageSalaryContainerXPath))).Throws(new NoSuchElementException());
                 break;
             case "Description":
-                _mockDriver.Setup(e => e.FindElement(By.XPath(JobScraper.PageJobDescriptionXPath))).Throws(new NoSuchElementException());
+                _mockDriver.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.PageJobDescriptionXPath))).Throws(new NoSuchElementException());
                 break;
         }
 
         // Mock the FindElement method to return data for fields that were not provided
         if (field != "Location")
         {
-            _mockElement.Setup(e => e.FindElement(By.XPath(JobScraper.CardJobLocationXPath)).Text)
+            _mockElement.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.CardJobLocationXPath)).Text)
                 .Returns(() => MockJobData.JobLocations[0]);
         }
 
         if (field != "Title")
         {
-            _mockElement.Setup(e => e.FindElement(By.XPath(JobScraper.CardJobTitleXPath)).Text)
+            _mockElement.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.CardJobTitleXPath)).Text)
                 .Returns(() => MockJobData.JobTitles[0]);
         }
 
         if (field != "CompanyName")
         {
-            _mockElement.Setup(e => e.FindElement(By.XPath(JobScraper.CardJobCompanyXPath)).Text)
+            _mockElement.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.CardJobCompanyXPath)).Text)
                 .Returns(() => MockJobData.JobCompanies[0]);
         }
 
         if (field != "Description")
         {
-            _mockDriver.Setup(e => e.FindElement(By.XPath(JobScraper.PageJobDescriptionXPath)).Text)
+            _mockDriver.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.PageJobDescriptionXPath)).Text)
                 .Returns(() => MockJobData.JobDescriptions[0]);
         }
 
         if (field != "Salary")
         {
-            _mockDriver.Setup(e => e.FindElement(By.XPath(JobScraper.PageSalaryContainerXPath)).FindElement(By.XPath(".//span")).Text)
+            _mockDriver.Setup(e => e.FindElement(By.XPath(ProjectConstants.Xpaths.PageSalaryContainerXPath)).FindElement(By.XPath(ProjectConstants.Xpaths.LocalSpanPath)).Text)
                 .Returns(() => MockJobData.JobSalaries[0]);
         }
 
         _mockElement.Setup(e => e.Click());
         _mockDriver.Setup(d => d.Quit());
-        
+
         _mockWebDriverWait.Reset();
         _mockWebDriverWait.Setup(wait => wait.Until(It.IsAny<Func<IWebDriver, IReadOnlyCollection<IWebElement>>>()))
             .Returns(mockedElementCollection);
 
-        
         var jobScraper = new JobScraper(logger.Object, _mockWebDriverFactory.Object, _mockWebDriverWaitFactory.Object);
 
         // Act
         var result = await jobScraper.ScrapeJobsAsync("Software Engineer", "New York", 7, CancellationToken.None);
 
         // Assert
-        
+
         PrintLogs(logMessages);
-        
+
         // Should have data
         var jobPostings = result.Item1.ToList();
         Assert.NotEmpty(jobPostings);
@@ -239,7 +240,6 @@ public class JobScraperTests
             Assert.NotNull(jobPosting.Salary);
 
         Assert.True(result.Item2);
-
     }
 
     private Mock<ILogger<IJobPostingScraper>> LoggerSetup(List<string> logMessages)
@@ -268,7 +268,7 @@ public class JobScraperTests
             _testOutputHelper.WriteLine(log);
         }
     }
-    
+
 }
 
 public static class MockJobData
@@ -281,7 +281,7 @@ public static class MockJobData
         "Seattle, WA",
         "Boston, MA"
     };
-    
+
     public static readonly List<string> JobTitles = new List<string>
     {
         "Software Engineer",

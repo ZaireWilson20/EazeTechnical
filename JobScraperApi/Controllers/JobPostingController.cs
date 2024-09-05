@@ -2,6 +2,7 @@
 using EazeTechnical.Data;
 using EazeTechnical.Models;
 using EazeTechnical.Services;
+using EazeTechnical.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
@@ -15,7 +16,6 @@ public class JobPostingController : Controller
     private JobsDbContext _jobsDbContext;
     private readonly IJobPostingScraper _jobScraper;
     private readonly ILogger<JobPostingController> _logger;
-    private readonly JobRequestDto DefaultParams;
 
     public bool BadDbTestFailFlag = false;
 
@@ -24,12 +24,6 @@ public class JobPostingController : Controller
         _jobScraper = jobScraper;
         _logger = logger;
         _jobsDbContext = dataContext;
-        DefaultParams = new JobRequestDto
-        {
-            Location = "California",
-            Query = "Cannabis",
-            LastNdays = -1
-        };
     }
     
     [HttpPost]
@@ -37,7 +31,7 @@ public class JobPostingController : Controller
     {
         if (_jobsDbContext == null)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, "Database context not available.");
+            return StatusCode(StatusCodes.Status500InternalServerError, ProjectConstants.ResponseErrorMessages.DatabaseNoContext500);
         }
 
         if (!ModelState.IsValid)
@@ -46,9 +40,9 @@ public class JobPostingController : Controller
         }
 
         // Set defaults for missing params
-        var queryStr = jobPostParams.Query ?? DefaultParams.Query;
-        var locationStr = jobPostParams.Location ?? DefaultParams.Location;
-        var lastNdaysVal = jobPostParams.LastNdays ?? DefaultParams.LastNdays;
+        var queryStr = jobPostParams.Query ?? ProjectConstants.JobRequestDefaultFields.Query;
+        var locationStr = jobPostParams.Location ?? ProjectConstants.JobRequestDefaultFields.Location;
+        var lastNdaysVal = jobPostParams.LastNdays ?? ProjectConstants.JobRequestDefaultFields.LastNdays;
         using var cancTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         
         try
@@ -85,7 +79,7 @@ public class JobPostingController : Controller
                     QueryId = dbQueryRow?.Id ?? -1
                 },
                 Results = dbJobPostings ?? jobPostingDtos,
-                Message = scrapedJobs.Item2 ? "Full page scraped." : "Some job posts may be missing due to an exception hit while scraping."
+                Message = scrapedJobs.Item2 ? ProjectConstants.ResponseSuccessMessages.FindSuccessResponse200 : ProjectConstants.ResponseWarningMessages.MissingJobsFindWarningResponse200
             };
 
             return Ok(response);
@@ -93,11 +87,11 @@ public class JobPostingController : Controller
         }
         catch (OperationCanceledException)
         {
-            return StatusCode(StatusCodes.Status408RequestTimeout, "The scraping operation timed out.");
+            return StatusCode(StatusCodes.Status408RequestTimeout, ProjectConstants.ResponseErrorMessages.ScrapeRequestTimeout408);
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, $"{ProjectConstants.ResponseErrorMessages.GenericInternalError500}: {ex.Message}");
         }
     }
 
@@ -120,13 +114,13 @@ public class JobPostingController : Controller
                     QueryId = query_id
                 },
                 Results = dbJobPostings,
-                Message = dbJobPostings != null ? "Query Retrieved" : "The id provided does not exist."
+                Message = dbJobPostings != null ? ProjectConstants.ResponseSuccessMessages.FindSuccessResponse200 : ProjectConstants.ResponseWarningMessages.FindByIdWarningResponse200
             };
             return Ok(response);
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, $"{ProjectConstants.ResponseErrorMessages.GenericInternalError500}: {ex.Message}");
         }
         
     }
