@@ -2,7 +2,7 @@
 
 ## **Overview**
 
-The Job Scraper API is a web service designed to scrape job postings from various websites using Selenium WebDriver. The API allows users to send search queries and receive structured job posting data. The service is built using .NET 6 and employs Entity Framework Core for data persistence.
+The Job Scraper API is a web service designed to scrape job postings from Indeed.com using Selenium WebDriver. The API allows users to send search queries and receive structured job posting data. The service is built using .NET 6 and employs Entity Framework Core for data persistence.
 
 ### **Features**
 
