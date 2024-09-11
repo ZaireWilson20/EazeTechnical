@@ -29,6 +29,10 @@ public class JobPostingController : Controller
     }
 
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(QueryResponseDto))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status408RequestTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ObjectResult> FindJobsWithParams([FromBody] JobRequestDto jobPostParams, string website)
     {
         if (_jobsDbContext == null)
@@ -105,6 +109,9 @@ public class JobPostingController : Controller
     }
 
     [HttpGet("{query_id:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(QueryResponseDto))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ObjectResult> FindSrapeResultsFromQueryId(int query_id)
     {
         try
@@ -136,7 +143,9 @@ public class JobPostingController : Controller
             return StatusCode(StatusCodes.Status500InternalServerError, $"{ProjectConstants.ResponseErrorMessages.GenericInternalError500}: {ex.Message}");
         }
     }
-    public async Task<QueryResponse> SaveDataAsync(QueryResponse model)
+    
+    [NonAction]
+    private async Task<QueryResponse> SaveDataAsync(QueryResponse model)
     {
         try
         {
@@ -156,6 +165,7 @@ public class JobPostingController : Controller
         return model;
     }
     
+    [NonAction]
     private bool TryDeserializeJobPostings(string jsonString, out List<JobPostingDto>? jobPostings)
     {
         jobPostings = null;
@@ -191,6 +201,7 @@ public class JobPostingController : Controller
         return false;
     }
     
+    [NonAction]
     private bool TrySerializeJobPostings(List<JobPostingDto> jobPostings, out string? jsonString)
     {
         jsonString = null;

@@ -13,10 +13,10 @@ public interface IJobPostingScraper
 public class JobScraper : IJobPostingScraper
 {
     private readonly ILogger<IJobPostingScraper> _logger;
-    private readonly WebDriverFactory _webDriverFactory;
-    private readonly WebDriverWaitFactory _webDriverWaitFactory;
+    private readonly IFactory<IWebDriver> _webDriverFactory;
+    private readonly IFactory<IWebDriverWait> _webDriverWaitFactory;
     private readonly ChromeOptions _chromeOptions;
-    public JobScraper(ILogger<IJobPostingScraper> logger, WebDriverFactory webDriverFactory, WebDriverWaitFactory webDriverWaitFactory, ChromeOptions chromeOptions)
+    public JobScraper(ILogger<IJobPostingScraper> logger, IFactory<IWebDriver> webDriverFactory, IFactory<IWebDriverWait> webDriverWaitFactory, ChromeOptions chromeOptions)
     {
         _logger = logger;
         _webDriverFactory = webDriverFactory;

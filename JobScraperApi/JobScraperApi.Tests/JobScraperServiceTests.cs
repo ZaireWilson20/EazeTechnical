@@ -16,21 +16,12 @@ public class JobScraperTests
     private readonly Mock<IWebDriver> _mockDriver;
     private readonly Mock<IWebDriverWait> _mockWebDriverWait;
     private readonly Mock<IWebElement> _mockElement;
-    private readonly Mock<WebDriverFactory> _mockWebDriverFactory;
-    private readonly Mock<WebDriverWaitFactory> _mockWebDriverWaitFactory;
+    private readonly Mock<IFactory<IWebDriver>> _mockWebDriverFactory;
+    private readonly Mock<IFactory<IWebDriverWait>> _mockWebDriverWaitFactory;
     private ChromeOptions _chromeOptions;
 
     public JobScraperTests(ITestOutputHelper testOutputHelper)
     {
-        _testOutputHelper = testOutputHelper;
-        _mockDriver = new Mock<IWebDriver>();
-        _mockWebDriverWait = new Mock<IWebDriverWait>();
-        _mockElement = new Mock<IWebElement>();
-        _mockWebDriverFactory = new Mock<WebDriverFactory>();
-        _mockWebDriverFactory.Setup(f => f.Create()).Returns(_mockDriver.Object);
-        _mockWebDriverWaitFactory = new Mock<WebDriverWaitFactory>();
-        _mockWebDriverWaitFactory.Setup(f => f.Create(It.IsAny<IWebDriver>(), It.IsAny<TimeSpan>()))
-            .Returns(_mockWebDriverWait.Object);
         _chromeOptions = new ChromeOptions();
         _chromeOptions.AddArgument("--headless");
         _chromeOptions.AddArgument(
@@ -38,6 +29,17 @@ public class JobScraperTests
         _chromeOptions.AddArgument("--log-level=1");
         _chromeOptions.AddArgument("--disable-gpu");
         _chromeOptions.AddArgument("--no-sandbox");
+        
+        _testOutputHelper = testOutputHelper;
+        _mockDriver = new Mock<IWebDriver>();
+        _mockWebDriverWait = new Mock<IWebDriverWait>();
+        _mockElement = new Mock<IWebElement>();
+        _mockWebDriverFactory = new Mock<IFactory<IWebDriver>>();
+        _mockWebDriverFactory.Setup(f => f.Create(_chromeOptions)).Returns(_mockDriver.Object);
+        _mockWebDriverWaitFactory = new Mock<IFactory<IWebDriverWait>>();
+        _mockWebDriverWaitFactory.Setup(f => f.Create(It.IsAny<IWebDriver>(), It.IsAny<TimeSpan>()))
+            .Returns(_mockWebDriverWait.Object);
+
     }
 
     [Fact]

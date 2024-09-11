@@ -32,8 +32,8 @@ var jsonSerializerOptions = new JsonSerializerOptions
 builder.Services.AddSingleton(chromeOptions);
 builder.Services.AddSingleton(jsonSerializerOptions);
 
-builder.Services.AddSingleton<IFactory<IWebDriver>, WebDriverFactory>();
-builder.Services.AddSingleton<IFactory<IWebDriverWait>, WebDriverWaitFactory>();
+builder.Services.AddScoped<IFactory<IWebDriver>, WebDriverFactory>();
+builder.Services.AddScoped<IFactory<IWebDriverWait>, WebDriverWaitFactory>();
 
 builder.Services.AddScoped<IJobPostingScraper, JobScraper>();
 builder.Services.AddControllers();
@@ -54,7 +54,12 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Job Scraper v1"); 
+        c.RoutePrefix = "api-docs"; // UI available at /api-docs
+    });
     app.UseDeveloperExceptionPage();
 
 }
