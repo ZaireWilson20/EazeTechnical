@@ -5,27 +5,21 @@ namespace EazeTechnical.Data;
 
 public class JobsDbContext : DbContext
 {
-    private readonly IConfiguration? _configuration;
-    public DbSet<JobPosting>? JobPostings;
-
-
-
-    public JobsDbContext(){}
+    public DbSet<QueryResponse> JobPostQueries { get; set; }
+    private readonly ILogger<JobsDbContext> _logger;
     
-    public JobsDbContext(IConfiguration? configuration)
+    public JobsDbContext(DbContextOptions<JobsDbContext> options, ILogger<JobsDbContext> logger) : base(options)
     {
-        _configuration = configuration;
+        _logger = logger;
     }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        if (!optionsBuilder.IsConfigured && _configuration != null)
-        {
-            optionsBuilder
-                .UseNpgsql(_configuration.GetConnectionString("DefaultConnection"));
-        }
-        
-        base.OnConfiguring(optionsBuilder);
+        modelBuilder.Entity<QueryResponse>()
+            .ToTable("queries")
+            .Property(e => e.Results)
+            .HasColumnType("jsonb"); // Explicitly set the column type to jsonb
     }
-
+    
 }
+
